@@ -4,6 +4,7 @@ import(
 	"os/exec"
 	"os"
 	"io"
+	"strings"
 	log "github.com/Sirupsen/logrus"
 )
 
@@ -38,7 +39,7 @@ func GetMountPoint(dsName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(out), nil
+	return strings.TrimSpace(string(out)), nil
 }
 
 func CreateDatasetMount(dsName string, mountpoint string) error {
@@ -54,9 +55,9 @@ func IsEmpty(name string) (bool, error) {
     }
     defer f.Close()
 
-    _, err = f.Readdirnames(1) // Or f.Readdir(1)
+    _, err = f.Readdirnames(1)
     if err == io.EOF {
         return true, nil
     }
-    return false, err // Either not empty or error, suits both cases
+    return false, err
 }
