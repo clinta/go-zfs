@@ -12,9 +12,6 @@ var(
 	zfsExec	string
 )
 
-type dataset struct{
-}
-
 func init() {
 	var err error
 	zfsExec, err = exec.LookPath("zfs")
@@ -46,6 +43,21 @@ func CreateDatasetMount(dsName string, mountpoint string) error {
 	return exec.Command(	zfsExec, "create", 
 							"-o", "mountpoint="+mountpoint,
 							dsName							).Run()
+}
+
+func CreateDataset(dsName string) error {
+	return exec.Command(	zfsExec, "create", 
+							dsName				).Run()
+}
+
+func DestroyDataset(dsName string) error {
+	return exec.Command(	zfsExec, "destroy", 
+							"-R", dsName		).Run()
+}
+
+func CloneDataset(src string, dst string) error {
+	return exec.Command(	zfsExec, "clone", 
+							src, dst			).Run()
 }
 
 func IsEmpty(name string) (bool, error) {
