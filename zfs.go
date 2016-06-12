@@ -39,13 +39,12 @@ func GetMountPoint(dsName string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-func CreateDatasetMount(dsName string, mountpoint string) error {
-	return exec.Command(	zfsExec, "create", 
-							"-o", "mountpoint="+mountpoint,
-							dsName							).Run()
-}
-
-func CreateDataset(dsName string) error {
+func CreateDataset(dsName string, mountpoint string) error {
+	if mountpoint != "" {
+		return exec.Command(	zfsExec, "create", 
+								"-o", "mountpoint="+mountpoint,
+								dsName				).Run()
+	}
 	return exec.Command(	zfsExec, "create", 
 							dsName				).Run()
 }
@@ -55,9 +54,18 @@ func DestroyDataset(dsName string) error {
 							"-R", dsName		).Run()
 }
 
+func Snapshot(ds string) error {
+	return exec.Command(zfsExec, "snapshot", ds).Run()
+}
+
 func CloneDataset(src string, dst string) error {
 	return exec.Command(	zfsExec, "clone", 
 							src, dst			).Run()
+}
+
+func PromoteDataset(ds string) error {
+	return exec.Command(	zfsExec, "promote", 
+							ds					).Run()
 }
 
 func IsEmpty(name string) (bool, error) {
