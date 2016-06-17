@@ -1,17 +1,17 @@
 package zfs
 
-import(
-	"testing"
+import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"testing"
 )
 
-var(
+var (
 	TempDir string
 )
 
-func TestMain(m *testing.M){
+func TestMain(m *testing.M) {
 	var err error
 	TempDir, err = ioutil.TempDir("", "sjlTest")
 	if err != nil {
@@ -25,23 +25,23 @@ func TestMain(m *testing.M){
 
 	// Make file 2GB
 	if err := poolFile.Truncate(2e9); err != nil {
-			panic(err)
+		panic(err)
 	}
 
 	poolFile.Close()
 
 	// Create a zfs pool for testing
-	err = exec.Command( "zpool",
-							"create",
-							"sjlTestPool",
-							poolFile.Name() ).Run()
+	err = exec.Command("zpool",
+		"create",
+		"sjlTestPool",
+		poolFile.Name()).Run()
 	if err != nil {
-		panic (err)
+		panic(err)
 	}
 
 	exitStatus := m.Run()
 
-	exec.Command("zpool", "destroy", "-f", "sjlTestPool" ).Run()
+	exec.Command("zpool", "destroy", "-f", "sjlTestPool").Run()
 
 	os.Remove(poolFile.Name())
 
@@ -74,7 +74,7 @@ func TestCreateDatasetMount(t *testing.T) {
 		t.Error("sjlTestPool/TestCreateDatasetMount dataset does not exist after creating it")
 	}
 
-	if _, err := os.Stat(TempDir+"/testdsmount"); os.IsNotExist(err) {
+	if _, err := os.Stat(TempDir + "/testdsmount"); os.IsNotExist(err) {
 		t.Error(TempDir+"/testdsmount", " does not exist after creating a dataset mounted there")
 	}
 
@@ -90,7 +90,7 @@ func TestCreateDatasetMount(t *testing.T) {
 		t.Error(err)
 	}
 
-	empty, err := IsEmpty(TempDir+"/testdsmount")
+	empty, err := IsEmpty(TempDir + "/testdsmount")
 	if err != nil {
 		t.Error(err)
 	}
@@ -152,7 +152,7 @@ func TestPromoteDataset(t *testing.T) {
 		t.Error(err)
 	}
 	defer DestroyDataset("sjlTestPool/TestPromoteDst")
-	
+
 	if err := PromoteDataset("sjlTestPool/TestPromoteDst"); err != nil {
 		t.Error(err)
 	}

@@ -1,15 +1,15 @@
 package zfs
 
-import(
-	"os/exec"
-	"os"
-	"io"
-	"strings"
+import (
 	log "github.com/Sirupsen/logrus"
+	"io"
+	"os"
+	"os/exec"
+	"strings"
 )
 
-var(
-	zfsExec	string
+var (
+	zfsExec string
 )
 
 func init() {
@@ -30,9 +30,9 @@ func DatasetExists(dsName string) bool {
 }
 
 func GetMountPoint(dsName string) (string, error) {
-	out, err := exec.Command(	zfsExec, "get", "-H",
-								"-o", "value",
-								"mountpoint", dsName	).Output()
+	out, err := exec.Command(zfsExec, "get", "-H",
+		"-o", "value",
+		"mountpoint", dsName).Output()
 	if err != nil {
 		return "", err
 	}
@@ -41,17 +41,17 @@ func GetMountPoint(dsName string) (string, error) {
 
 func CreateDataset(dsName string, mountpoint string) error {
 	if mountpoint != "" {
-		return exec.Command(	zfsExec, "create", 
-								"-o", "mountpoint="+mountpoint,
-								dsName				).Run()
+		return exec.Command(zfsExec, "create",
+			"-o", "mountpoint="+mountpoint,
+			dsName).Run()
 	}
-	return exec.Command(	zfsExec, "create", 
-							dsName				).Run()
+	return exec.Command(zfsExec, "create",
+		dsName).Run()
 }
 
 func DestroyDataset(dsName string) error {
-	return exec.Command(	zfsExec, "destroy", 
-							"-R", dsName		).Run()
+	return exec.Command(zfsExec, "destroy",
+		"-R", dsName).Run()
 }
 
 func Snapshot(ds string) error {
@@ -59,25 +59,25 @@ func Snapshot(ds string) error {
 }
 
 func CloneDataset(src string, dst string) error {
-	return exec.Command(	zfsExec, "clone", 
-							src, dst			).Run()
+	return exec.Command(zfsExec, "clone",
+		src, dst).Run()
 }
 
 func PromoteDataset(ds string) error {
-	return exec.Command(	zfsExec, "promote", 
-							ds					).Run()
+	return exec.Command(zfsExec, "promote",
+		ds).Run()
 }
 
 func IsEmpty(name string) (bool, error) {
-    f, err := os.Open(name)
-    if err != nil {
-        return false, err
-    }
-    defer f.Close()
+	f, err := os.Open(name)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
 
-    _, err = f.Readdirnames(1)
-    if err == io.EOF {
-        return true, nil
-    }
-    return false, err
+	_, err = f.Readdirnames(1)
+	if err == io.EOF {
+		return true, nil
+	}
+	return false, err
 }
