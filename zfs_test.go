@@ -28,6 +28,8 @@ func TestMain(m *testing.M){
 			panic(err)
 	}
 
+	poolFile.Close()
+
 	// Create a zfs pool for testing
 	err = exec.Command( "zpool",
 							"create",
