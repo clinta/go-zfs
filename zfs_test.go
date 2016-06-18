@@ -15,22 +15,27 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	exitStatus := 1
+	defer func() { os.Exit(exitStatus) }()
+
 	var err error
+
 	TempDir, err = ioutil.TempDir("", "sjlTest")
 	if err != nil {
-		panic(err)
+		return
 	}
+	defer os.RemoveAll(TempDir)
 
 	poolFile, err := ioutil.TempFile(TempDir, "pool")
 	if err != nil {
-		panic(err)
+		return
 	}
+	defer os.Remove(poolFile.Name())
 
 	// Make file 2GB
 	if err := poolFile.Truncate(2e9); err != nil {
-		panic(err)
+		return
 	}
-
 	poolFile.Close()
 
 	// Create a zfs pool for testing
@@ -47,13 +52,14 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		e := poolDestroy.Run()
 		if e != nil {
-			panic(err)
+			return
 		}
 		e = poolCreate.Run()
 		if e != nil {
-			panic(err)
+			return
 		}
 	}
+	defer poolDestroy.Run()
 
 	noExDs = &Dataset{
 		Name: "sjlTestPool/NonExistentDataset",
@@ -67,15 +73,8 @@ func TestMain(m *testing.M) {
 		Name: "sjlTestPool/NonExistentDataset@snapshot",
 	}
 
-	exitStatus := m.Run()
+	exitStatus = m.Run()
 
-	poolDestroy.Run()
-
-	os.Remove(poolFile.Name())
-
-	os.RemoveAll(TempDir)
-
-	os.Exit(exitStatus)
 }
 
 func TestGetDatasetNotExists(t *testing.T) {
