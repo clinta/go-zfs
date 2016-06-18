@@ -1,29 +1,15 @@
 package zfs
 
 import (
-	log "github.com/Sirupsen/logrus"
 	"io"
 	"os"
 	"os/exec"
 	"strings"
 )
 
-var (
-	zfsExec string
-)
-
-func init() {
-	var err error
-	zfsExec, err = exec.LookPath("zfs")
-	if err != nil {
-		log.Error(err)
-		log.Fatal("zfs Executable not found")
-	}
-}
-
 // DatasetExists checks for the existence of a dataset
 func DatasetExists(dsName string) bool {
-	err := exec.Command(zfsExec, "list", dsName).Run()
+	err := exec.Command("zfs", "list", dsName).Run()
 	if err != nil {
 		return false
 	}
@@ -32,7 +18,7 @@ func DatasetExists(dsName string) bool {
 
 // GetMountPoint returns the mountpoint for a dataset
 func GetMountPoint(dsName string) (string, error) {
-	out, err := exec.Command(zfsExec, "get", "-H",
+	out, err := exec.Command("zfs", "get", "-H",
 		"-o", "value",
 		"mountpoint", dsName).Output()
 	if err != nil {
@@ -44,34 +30,34 @@ func GetMountPoint(dsName string) (string, error) {
 // CreateDataset creates a dataset
 func CreateDataset(dsName string, mountpoint string) error {
 	if mountpoint != "" {
-		return exec.Command(zfsExec, "create",
+		return exec.Command("zfs", "create",
 			"-o", "mountpoint="+mountpoint,
 			dsName).Run()
 	}
-	return exec.Command(zfsExec, "create",
+	return exec.Command("zfs", "create",
 		dsName).Run()
 }
 
 // DestroyDataset destroys a dataset
 func DestroyDataset(dsName string) error {
-	return exec.Command(zfsExec, "destroy",
+	return exec.Command("zfs", "destroy",
 		"-R", dsName).Run()
 }
 
 // Snapshot takes a snapshot
 func Snapshot(ds string) error {
-	return exec.Command(zfsExec, "snapshot", ds).Run()
+	return exec.Command("zfs", "snapshot", ds).Run()
 }
 
 // CloneDataset clones a snapshot
 func CloneDataset(src string, dst string) error {
-	return exec.Command(zfsExec, "clone",
+	return exec.Command("zfs", "clone",
 		src, dst).Run()
 }
 
 // PromoteDataset promotes a clone
 func PromoteDataset(ds string) error {
-	return exec.Command(zfsExec, "promote",
+	return exec.Command("zfs", "promote",
 		ds).Run()
 }
 

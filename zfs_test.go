@@ -31,17 +31,30 @@ func TestMain(m *testing.M) {
 	poolFile.Close()
 
 	// Create a zfs pool for testing
-	err = exec.Command("zpool",
+	poolCreate := exec.Command("zpool",
 		"create",
 		"sjlTestPool",
-		poolFile.Name()).Run()
+		poolFile.Name())
+	poolDestroy := exec.Command("zpool",
+		"destroy",
+		"-f",
+		"sjlTestPool")
+
+	err = poolCreate.Run()
 	if err != nil {
-		panic(err)
+		e := poolDestroy.Run()
+		if e != nil {
+			panic(err)
+		}
+		e = poolCreate.Run()
+		if e != nil {
+			panic(err)
+		}
 	}
 
 	exitStatus := m.Run()
 
-	exec.Command("zpool", "destroy", "-f", "sjlTestPool").Run()
+	poolDestroy.Run()
 
 	os.Remove(poolFile.Name())
 
@@ -51,6 +64,10 @@ func TestMain(m *testing.M) {
 }
 
 func TestCreateDataset(t *testing.T) {
+	if DatasetExists("sjlTestPool/TestCreateDataset") {
+		t.Error("sjlTestPool/TestCreateDataset exists before creating it")
+	}
+
 	if err := CreateDataset("sjlTestPool/TestCreateDataset", ""); err != nil {
 		t.Error(err)
 	}
@@ -76,6 +93,11 @@ func TestCreateDatasetMount(t *testing.T) {
 
 	if _, err := os.Stat(TempDir + "/testdsmount"); os.IsNotExist(err) {
 		t.Error(TempDir+"/testdsmount", " does not exist after creating a dataset mounted there")
+	}
+
+	_, err := GetMountPoint("sjlTestPool/TestCreateDatasetMount2")
+	if err == nil {
+		t.Error("GetMountPoint for non-existent datastore did not return err")
 	}
 
 	mp, err := GetMountPoint("sjlTestPool/TestCreateDatasetMount")
@@ -168,5 +190,11 @@ func TestPromoteDataset(t *testing.T) {
 
 	if err := DestroyDataset("sjlTestPool/TestPromoteSrc"); err != nil {
 		t.Error("Can't destroy source after dst was promoted: ", err)
+	}
+}
+
+func TestEmptyNonExist(t *testing.T) {
+	if _, err := IsEmpty("/tmp/sjlEmptyNotExists"); err == nil {
+		t.Error("IsEmpty on non-existent directory does not return err")
 	}
 }
