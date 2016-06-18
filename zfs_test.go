@@ -9,6 +9,9 @@ import (
 
 var (
 	TempDir string
+	noExDs  *Dataset
+	invDs   *Dataset
+	noExSn  *Snapshot
 )
 
 func TestMain(m *testing.M) {
@@ -52,6 +55,18 @@ func TestMain(m *testing.M) {
 		}
 	}
 
+	noExDs = &Dataset{
+		Name: "sjlTestPool/NonExistentDataset",
+	}
+
+	invDs = &Dataset{
+		Name: "sjlTestPool/invalid@Dataset",
+	}
+
+	noExSn = &Snapshot{
+		Name: "sjlTestPool/NonExistentDataset@snapshot",
+	}
+
 	exitStatus := m.Run()
 
 	poolDestroy.Run()
@@ -63,12 +78,49 @@ func TestMain(m *testing.M) {
 	os.Exit(exitStatus)
 }
 
+func TestGetDatasetNotExists(t *testing.T) {
+	if _, err := GetDataset(noExDs.Name); err == nil {
+		t.Error("GetDataset sjlTestPool/TestCreateDataset succeeded when it shouldn't exist")
+	}
+}
+
+func TestCreateInvalidDataset(t *testing.T) {
+	if _, err := CreateDataset(invDs.Name, nil); err == nil {
+		t.Error("Create dataset with invalid name succeeded")
+	}
+}
+
+func TestDestroyNonexistentDataset(t *testing.T) {
+	if err := noExDs.Destroy(); err == nil {
+		t.Error("Destroying nonexistent dataset succeeded")
+	}
+}
+
+func TestGetNonexistentSnapshot(t *testing.T) {
+	if _, err := GetSnapshot(noExSn.Name); err == nil {
+		t.Error("Getting nonexistent snapshot succeeded")
+	}
+}
+
+func TestSnapshotNonexistentDataset(t *testing.T) {
+	if _, err := noExDs.Snapshot("test"); err == nil {
+		t.Error("Snapshotting non existent dataset succeeded")
+	}
+}
+
+func TestCloneNonexistentSnapshot(t *testing.T) {
+	if _, err := noExSn.Clone(noExDs.Name); err == nil {
+		t.Error("Cloning non existent dataset succeeded")
+	}
+}
+
 func TestCreateDataset(t *testing.T) {
 	if DatasetExists("sjlTestPool/TestCreateDataset") {
 		t.Error("sjlTestPool/TestCreateDataset exists before creating it")
 	}
 
-	if err := CreateDataset("sjlTestPool/TestCreateDataset", ""); err != nil {
+	ds, err := CreateDataset("sjlTestPool/TestCreateDataset", nil)
+	if err != nil {
 		t.Error(err)
 	}
 
@@ -76,14 +128,17 @@ func TestCreateDataset(t *testing.T) {
 		t.Error("sjlTestPool/TestCreateDataset dataset does not exist after creating it")
 	}
 
-	if err := DestroyDataset("sjlTestPool/TestCreateDataset"); err != nil {
+	if err := ds.Destroy(); err != nil {
 		t.Error(err)
 	}
 
 }
 
 func TestCreateDatasetMount(t *testing.T) {
-	if err := CreateDataset("sjlTestPool/TestCreateDatasetMount", TempDir+"/testdsmount"); err != nil {
+	dsOpts := make(map[string]string)
+	dsOpts["mountpoint"] = TempDir + "/testdsmount"
+	ds, err := CreateDataset("sjlTestPool/TestCreateDatasetMount", dsOpts)
+	if err != nil {
 		t.Error(err)
 	}
 
@@ -95,12 +150,15 @@ func TestCreateDatasetMount(t *testing.T) {
 		t.Error(TempDir+"/testdsmount", " does not exist after creating a dataset mounted there")
 	}
 
-	_, err := GetMountPoint("sjlTestPool/TestCreateDatasetMount2")
+	dsNoExist := &Dataset{
+		Name: "foobar",
+	}
+	_, err = dsNoExist.GetMountpoint()
 	if err == nil {
 		t.Error("GetMountPoint for non-existent datastore did not return err")
 	}
 
-	mp, err := GetMountPoint("sjlTestPool/TestCreateDatasetMount")
+	mp, err := ds.GetMountpoint()
 	if err != nil {
 		t.Error(err)
 	}
@@ -108,7 +166,7 @@ func TestCreateDatasetMount(t *testing.T) {
 		t.Error("GetMountPoint not equal to the mountpoint set by CreateDataSet")
 	}
 
-	if err := DestroyDataset("sjlTestPool/TestCreateDatasetMount"); err != nil {
+	if err := ds.Destroy(); err != nil {
 		t.Error(err)
 	}
 
@@ -123,25 +181,28 @@ func TestCreateDatasetMount(t *testing.T) {
 }
 
 func TestCloneDataset(t *testing.T) {
-	if err := CreateDataset("sjlTestPool/TestCloneSrc", ""); err != nil {
+	ds, err := CreateDataset("sjlTestPool/TestCloneSrc", nil)
+	if err != nil {
 		t.Error(err)
 	}
-	defer DestroyDataset("sjlTestPool/TestCloneSrc")
+	defer ds.Destroy()
 
 	d1 := []byte("test\nfile\n")
-	err := ioutil.WriteFile("/sjlTestPool/TestCloneSrc/testfile", d1, 0644)
+	err = ioutil.WriteFile("/sjlTestPool/TestCloneSrc/testfile", d1, 0644)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if err := Snapshot("sjlTestPool/TestCloneSrc@0"); err != nil {
+	sn, err := ds.Snapshot("0")
+	if err != nil {
 		t.Error(err)
 	}
 
-	if err := CloneDataset("sjlTestPool/TestCloneSrc@0", "sjlTestPool/TestCloneDst"); err != nil {
+	dsc, err := sn.Clone("sjlTestPool/TestCloneDst")
+	if err != nil {
 		t.Error(err)
 	}
-	defer DestroyDataset("sjlTestPool/TestCloneDst")
+	defer dsc.Destroy()
 
 	empty, err := IsEmpty("/sjlTestPool/TestCloneDst")
 	if err != nil {
@@ -154,28 +215,31 @@ func TestCloneDataset(t *testing.T) {
 }
 
 func TestPromoteDataset(t *testing.T) {
-	if err := CreateDataset("sjlTestPool/TestPromoteSrc", ""); err != nil {
+	ds, err := CreateDataset("sjlTestPool/TestPromoteSrc", nil)
+	if err != nil {
 		t.Error(err)
 	}
 	// Don't defer, manually destroy it first, it should work since the destination is promoted
 	//defer DestroyDataset("sjlTestPool/TestPromoteSrc")
 
 	d1 := []byte("test\nfile\n")
-	err := ioutil.WriteFile("/sjlTestPool/TestPromoteSrc/testfile", d1, 0644)
+	err = ioutil.WriteFile("/sjlTestPool/TestPromoteSrc/testfile", d1, 0644)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if err := Snapshot("sjlTestPool/TestPromoteSrc@0"); err != nil {
+	sn, err := ds.Snapshot("0")
+	if err != nil {
 		t.Error(err)
 	}
 
-	if err := CloneDataset("sjlTestPool/TestPromoteSrc@0", "sjlTestPool/TestPromoteDst"); err != nil {
+	dsc, err := sn.Clone("sjlTestPool/TestPromoteDst")
+	if err != nil {
 		t.Error(err)
 	}
-	defer DestroyDataset("sjlTestPool/TestPromoteDst")
+	defer dsc.Destroy()
 
-	if err := PromoteDataset("sjlTestPool/TestPromoteDst"); err != nil {
+	if err := dsc.Promote(); err != nil {
 		t.Error(err)
 	}
 
@@ -188,7 +252,7 @@ func TestPromoteDataset(t *testing.T) {
 		t.Error("Promoted dataset is empty")
 	}
 
-	if err := DestroyDataset("sjlTestPool/TestPromoteSrc"); err != nil {
+	if err := ds.Destroy(); err != nil {
 		t.Error("Can't destroy source after dst was promoted: ", err)
 	}
 }
