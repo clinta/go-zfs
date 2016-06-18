@@ -21,6 +21,7 @@ func init() {
 	}
 }
 
+// DatasetExists checks for the existence of a dataset
 func DatasetExists(dsName string) bool {
 	err := exec.Command(zfsExec, "list", dsName).Run()
 	if err != nil {
@@ -29,6 +30,7 @@ func DatasetExists(dsName string) bool {
 	return true
 }
 
+// GetMountPoint returns the mountpoint for a dataset
 func GetMountPoint(dsName string) (string, error) {
 	out, err := exec.Command(zfsExec, "get", "-H",
 		"-o", "value",
@@ -39,6 +41,7 @@ func GetMountPoint(dsName string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
+// CreateDataset creates a dataset
 func CreateDataset(dsName string, mountpoint string) error {
 	if mountpoint != "" {
 		return exec.Command(zfsExec, "create",
@@ -49,25 +52,30 @@ func CreateDataset(dsName string, mountpoint string) error {
 		dsName).Run()
 }
 
+// DestroyDataset destroys a dataset
 func DestroyDataset(dsName string) error {
 	return exec.Command(zfsExec, "destroy",
 		"-R", dsName).Run()
 }
 
+// Snapshot takes a snapshot
 func Snapshot(ds string) error {
 	return exec.Command(zfsExec, "snapshot", ds).Run()
 }
 
+// CloneDataset clones a snapshot
 func CloneDataset(src string, dst string) error {
 	return exec.Command(zfsExec, "clone",
 		src, dst).Run()
 }
 
+// PromoteDataset promotes a clone
 func PromoteDataset(ds string) error {
 	return exec.Command(zfsExec, "promote",
 		ds).Run()
 }
 
+// IsEmpty returns whether or not a directory is empty
 func IsEmpty(name string) (bool, error) {
 	f, err := os.Open(name)
 	if err != nil {
