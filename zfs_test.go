@@ -160,8 +160,7 @@ func TestCloneDataset(t *testing.T) {
 	defer func() { assert.NoError(ds.Destroy()) }()
 
 	d1 := []byte("test\nfile\n")
-	err = ioutil.WriteFile("/sjlTestPool/TestCloneSrc/testfile", d1, 0644)
-	assert.NoError(err)
+	assert.NoError(ioutil.WriteFile("/sjlTestPool/TestCloneSrc/testfile", d1, 0644))
 
 	sn, err := ds.Snapshot("0")
 	assert.NoError(err)
@@ -191,7 +190,7 @@ func TestPromoteDataset(t *testing.T) {
 
 	dsc, err := sn.Clone("sjlTestPool/TestPromoteDst")
 	assert.NoError(err)
-	defer assert.NoError(dsc.Destroy())
+	defer func() { assert.NoError(dsc.Destroy()) }()
 
 	assert.NoError(dsc.Promote())
 
