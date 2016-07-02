@@ -1,6 +1,7 @@
 package zfs
 
 import (
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -77,186 +78,131 @@ func TestMain(m *testing.M) {
 }
 
 func TestGetDatasetNotExists(t *testing.T) {
-	if _, err := GetDataset(noExDs.Name); err == nil {
-		t.Error("GetDataset sjlTestPool/TestCreateDataset succeeded when it shouldn't exist")
-	}
+	_, err := GetDataset(noExDs.Name)
+	assert.Error(t, err, "GetDataset sjlTestPool/TestCreateDataset succeeded when it shouldn't exist")
 }
 
 func TestCreateInvalidDataset(t *testing.T) {
-	if _, err := CreateDataset(invDs.Name, nil); err == nil {
-		t.Error("Create dataset with invalid name succeeded")
-	}
+	_, err := CreateDataset(invDs.Name, nil)
+	assert.Error(t, err, "Create dataset with invalid name succeeded")
 }
 
 func TestDestroyNonexistentDataset(t *testing.T) {
-	if err := noExDs.Destroy(); err == nil {
-		t.Error("Destroying nonexistent dataset succeeded")
-	}
+	err := noExDs.Destroy()
+	assert.Error(t, err, "Destroying nonexistent dataset succeeded")
 }
 
 func TestGetNonexistentSnapshot(t *testing.T) {
-	if _, err := GetSnapshot(noExSn.Name); err == nil {
-		t.Error("Getting nonexistent snapshot succeeded")
-	}
+	_, err := GetSnapshot(noExSn.Name)
+	assert.Error(t, err, "Getting nonexistent snapshot succeeded")
 }
 
 func TestSnapshotNonexistentDataset(t *testing.T) {
-	if _, err := noExDs.Snapshot("test"); err == nil {
-		t.Error("Snapshotting non existent dataset succeeded")
-	}
+	_, err := noExDs.Snapshot("test")
+	assert.Error(t, err, "Snapshotting non existent dataset succeeded")
 }
 
 func TestCloneNonexistentSnapshot(t *testing.T) {
-	if _, err := noExSn.Clone(noExDs.Name); err == nil {
-		t.Error("Cloning non existent dataset succeeded")
-	}
+	_, err := noExSn.Clone(noExDs.Name)
+	assert.Error(t, err, "Cloning non existent dataset succeeded")
 }
 
 func TestCreateDataset(t *testing.T) {
-	if DatasetExists("sjlTestPool/TestCreateDataset") {
-		t.Error("sjlTestPool/TestCreateDataset exists before creating it")
-	}
+	assert := assert.New(t)
+	assert.False(DatasetExists("sjlTestPool/TestCreateDataset"),
+		"sjlTestPool/TestCreateDataset exists before creating it")
 
 	ds, err := CreateDataset("sjlTestPool/TestCreateDataset", nil)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(err)
 
-	if !DatasetExists("sjlTestPool/TestCreateDataset") {
-		t.Error("sjlTestPool/TestCreateDataset dataset does not exist after creating it")
-	}
+	assert.True(DatasetExists("sjlTestPool/TestCreateDataset"),
+		"sjlTestPool/TestCreateDataset dataset does not exist after creating it")
 
-	if err := ds.Destroy(); err != nil {
-		t.Error(err)
-	}
-
+	assert.NoError(ds.Destroy())
 }
 
 func TestCreateDatasetMount(t *testing.T) {
+	assert := assert.New(t)
 	dsOpts := make(map[string]string)
 	dsOpts["mountpoint"] = TempDir + "/testdsmount"
 	ds, err := CreateDataset("sjlTestPool/TestCreateDatasetMount", dsOpts)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(err)
 
-	if !DatasetExists("sjlTestPool/TestCreateDatasetMount") {
-		t.Error("sjlTestPool/TestCreateDatasetMount dataset does not exist after creating it")
-	}
+	assert.True(DatasetExists("sjlTestPool/TestCreateDatasetMount"),
+		"sjlTestPool/TestCreateDatasetMount dataset does not exist after creating it")
 
-	if _, err := os.Stat(TempDir + "/testdsmount"); os.IsNotExist(err) {
-		t.Error(TempDir+"/testdsmount", " does not exist after creating a dataset mounted there")
-	}
+	_, err = os.Stat(TempDir + "/testdsmount")
+	assert.False(os.IsNotExist(err),
+		TempDir+"/testdsmount", " does not exist after creating a dataset mounted there")
 
 	dsNoExist := &Dataset{
 		Name: "foobar",
 	}
 	_, err = dsNoExist.GetMountpoint()
-	if err == nil {
-		t.Error("GetMountPoint for non-existent datastore did not return err")
-	}
+	assert.Error(err, "GetMountPoint for non-existent datastore did not return err")
 
 	mp, err := ds.GetMountpoint()
-	if err != nil {
-		t.Error(err)
-	}
-	if mp != TempDir+"/testdsmount" {
-		t.Error("GetMountPoint not equal to the mountpoint set by CreateDataSet")
-	}
+	assert.NoError(err)
+	assert.Equal(mp, TempDir+"/testdsmount", "GetMountPoint not equal to the mountpoint set by CreateDataSet")
 
-	if err := ds.Destroy(); err != nil {
-		t.Error(err)
-	}
+	assert.NoError(ds.Destroy())
 
 	empty, err := IsEmpty(TempDir + "/testdsmount")
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(err)
 
-	if !empty {
-		t.Error("Newly created dataset is not empty")
-	}
+	assert.True(empty, "Newly created dataset is not empty")
 }
 
 func TestCloneDataset(t *testing.T) {
+	assert := assert.New(t)
 	ds, err := CreateDataset("sjlTestPool/TestCloneSrc", nil)
-	if err != nil {
-		t.Error(err)
-	}
-	defer ds.Destroy()
+	assert.NoError(err)
+	defer assert.NoError(ds.Destroy())
 
 	d1 := []byte("test\nfile\n")
-	err = ioutil.WriteFile("/sjlTestPool/TestCloneSrc/testfile", d1, 0644)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(ioutil.WriteFile("/sjlTestPool/TestCloneSrc/testfile", d1, 0644))
 
 	sn, err := ds.Snapshot("0")
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(err)
 
 	dsc, err := sn.Clone("sjlTestPool/TestCloneDst")
-	if err != nil {
-		t.Error(err)
-	}
-	defer dsc.Destroy()
+	assert.NoError(err)
+	defer assert.NoError(dsc.Destroy())
 
 	empty, err := IsEmpty("/sjlTestPool/TestCloneDst")
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(err)
 
-	if empty {
-		t.Error("Cloned dataset is empty")
-	}
+	assert.False(empty, "Cloned dataset is empty")
 }
 
 func TestPromoteDataset(t *testing.T) {
+	assert := assert.New(t)
 	ds, err := CreateDataset("sjlTestPool/TestPromoteSrc", nil)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(err)
 	// Don't defer, manually destroy it first, it should work since the destination is promoted
 	//defer DestroyDataset("sjlTestPool/TestPromoteSrc")
 
 	d1 := []byte("test\nfile\n")
-	err = ioutil.WriteFile("/sjlTestPool/TestPromoteSrc/testfile", d1, 0644)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(ioutil.WriteFile("/sjlTestPool/TestPromoteSrc/testfile", d1, 0644))
 
 	sn, err := ds.Snapshot("0")
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(err)
 
 	dsc, err := sn.Clone("sjlTestPool/TestPromoteDst")
-	if err != nil {
-		t.Error(err)
-	}
-	defer dsc.Destroy()
+	assert.NoError(err)
+	defer assert.NoError(dsc.Destroy())
 
-	if err := dsc.Promote(); err != nil {
-		t.Error(err)
-	}
+	assert.NoError(dsc.Promote())
 
 	empty, err := IsEmpty("/sjlTestPool/TestPromoteDst")
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(err)
 
-	if empty {
-		t.Error("Promoted dataset is empty")
-	}
+	assert.False(empty, "Promoted dataset is empty")
 
-	if err := ds.Destroy(); err != nil {
-		t.Error("Can't destroy source after dst was promoted: ", err)
-	}
+	assert.NoError(ds.Destroy(), "Can't destroy source after dst was promoted.")
 }
 
 func TestEmptyNonExist(t *testing.T) {
-	if _, err := IsEmpty("/tmp/sjlEmptyNotExists"); err == nil {
-		t.Error("IsEmpty on non-existent directory does not return err")
-	}
+	_, err := IsEmpty("/tmp/sjlEmptyNotExists")
+	assert.Error(t, err, "IsEmpty on non-existent directory does not return err")
 }
