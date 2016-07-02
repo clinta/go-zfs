@@ -20,7 +20,7 @@ func TestMain(m *testing.M) {
 
 	var err error
 
-	TempDir, err = ioutil.TempDir("", "sjlTest")
+	TempDir, err = ioutil.TempDir("", "sjlTestZfs")
 	if err != nil {
 		return
 	}
@@ -74,7 +74,6 @@ func TestMain(m *testing.M) {
 	}
 
 	exitStatus = m.Run()
-
 }
 
 func TestGetDatasetNotExists(t *testing.T) {
