@@ -157,33 +157,23 @@ func TestCloneDataset(t *testing.T) {
 	assert := assert.New(t)
 	ds, err := CreateDataset("sjlTestPool/TestCloneSrc", nil)
 	assert.NoError(err)
-	defer assert.NoError(ds.Destroy())
+	defer ds.Destroy()
 
 	d1 := []byte("test\nfile\n")
 	err = ioutil.WriteFile("/sjlTestPool/TestCloneSrc/testfile", d1, 0644)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(err)
 
 	sn, err := ds.Snapshot("0")
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(err)
 
 	dsc, err := sn.Clone("sjlTestPool/TestCloneDst")
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(err)
 	defer dsc.Destroy()
 
 	empty, err := IsEmpty("/sjlTestPool/TestCloneDst")
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(err)
 
-	if empty {
-		t.Error("Cloned dataset is empty")
-	}
+	assert.False(empty, "Cloned dataset is empty")
 }
 
 func TestPromoteDataset(t *testing.T) {
