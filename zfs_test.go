@@ -154,6 +154,7 @@ func TestCreateDatasetMount(t *testing.T) {
 }
 
 func TestCloneDataset(t *testing.T) {
+	assert := assert.New(t)
 	ds, err := CreateDataset("sjlTestPool/TestCloneSrc", nil)
 	assert.NoError(err)
 	defer assert.NoError(ds.Destroy())
