@@ -157,7 +157,7 @@ func TestCloneDataset(t *testing.T) {
 	assert := assert.New(t)
 	ds, err := CreateDataset("sjlTestPool/TestCloneSrc", nil)
 	assert.NoError(err)
-	defer assert.NoError(ds.Destroy())
+	defer ds.Destroy()
 
 	d1 := []byte("test\nfile\n")
 	err = ioutil.WriteFile("/sjlTestPool/TestCloneSrc/testfile", d1, 0644)
