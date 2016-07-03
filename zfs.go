@@ -8,10 +8,12 @@ import (
 	"strings"
 )
 
+// Dataset is a zfs dataset
 type Dataset struct {
 	Name string
 }
 
+// GetDataset returns a zfs dataset object from a string
 func GetDataset(name string) (*Dataset, error) {
 	if !DatasetExists(name) {
 		return nil, fmt.Errorf("Dataset not found")
@@ -24,10 +26,7 @@ func GetDataset(name string) (*Dataset, error) {
 // DatasetExists checks for the existence of a dataset
 func DatasetExists(name string) bool {
 	err := exec.Command("zfs", "list", "-t", "filesystem", name).Run()
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 // GetProperty returns a property for a dataset
@@ -41,7 +40,7 @@ func (ds *Dataset) GetProperty(property string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-// MountPoint returns the mountpoint for a dataset
+// GetMountpoint returns the mountpoint for a dataset
 func (ds *Dataset) GetMountpoint() (string, error) {
 	return ds.GetProperty("mountpoint")
 }
@@ -62,7 +61,7 @@ func CreateDataset(name string, properties map[string]string) (*Dataset, error) 
 	return GetDataset(name)
 }
 
-// DestroyDataset destroys a dataset
+// Destroy destroys a dataset
 func (ds *Dataset) Destroy() error {
 	if err := exec.Command("zfs", "destroy", "-R", ds.Name).Run(); err != nil {
 		return err
@@ -71,6 +70,7 @@ func (ds *Dataset) Destroy() error {
 	return nil
 }
 
+// GetSnapshot returns a snapshot from a string
 func GetSnapshot(name string) (*Snapshot, error) {
 	if !SnapshotExists(name) {
 		return nil, fmt.Errorf("Snapshot not found")
@@ -83,12 +83,10 @@ func GetSnapshot(name string) (*Snapshot, error) {
 // SnapshotExists checks for the existence of a dataset
 func SnapshotExists(Name string) bool {
 	err := exec.Command("zfs", "list", "-t", "snapshot", Name).Run()
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
+// Snapshot represents a zfs snapshot
 type Snapshot struct {
 	Name string
 }
@@ -112,7 +110,7 @@ func (sn *Snapshot) Clone(target string) (*Dataset, error) {
 	return GetDataset(target)
 }
 
-// PromoteDataset promotes a clone
+// Promote promotes a cloned dataset
 func (ds *Dataset) Promote() error {
 	return exec.Command("zfs", "promote", ds.Name).Run()
 }

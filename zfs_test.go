@@ -1,11 +1,12 @@
 package zfs
 
 import (
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -34,7 +35,8 @@ func TestMain(m *testing.M) {
 	defer os.Remove(poolFile.Name())
 
 	// Make file 2GB
-	if err := poolFile.Truncate(2e9); err != nil {
+	err = poolFile.Truncate(2e9)
+	if err != nil {
 		return
 	}
 	poolFile.Close()
