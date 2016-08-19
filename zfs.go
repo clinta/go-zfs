@@ -1,6 +1,7 @@
 package zfs
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -23,10 +24,31 @@ func GetDataset(name string) (*Dataset, error) {
 	}, nil
 }
 
+func datasetList(name string) (ds []Dataset, err error) {
+	out, err := exec.Command("zfs", "list", "-r", "-H", "-o", "name", "-t", "filesystem", name).Output()
+	if err != nil {
+		return
+	}
+	for _, d := range bytes.Split(out, []byte("\n")) {
+		ds = append(ds, Dataset{Name: strings.TrimSpace(string(d))})
+	}
+	return
+}
+
+// DatasetList lists all datasets
+func DatasetList() ([]Dataset, error) {
+	return datasetList("")
+}
+
 // DatasetExists checks for the existence of a dataset
 func DatasetExists(name string) bool {
 	err := exec.Command("zfs", "list", "-t", "filesystem", name).Run()
 	return err == nil
+}
+
+// DatasetList lists all child datasets
+func (ds *Dataset) DatasetList() ([]Dataset, error) {
+	return datasetList(ds.Name)
 }
 
 // GetProperty returns a property for a dataset
