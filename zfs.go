@@ -30,6 +30,12 @@ func datasetList(name string) (ds []Dataset, err error) {
 		return
 	}
 	for _, d := range bytes.Split(out, []byte("\n")) {
+		if strings.TrimSpace(string(d)) == name {
+			continue
+		}
+		if strings.TrimSpace(string(d)) == "" {
+			continue
+		}
 		ds = append(ds, Dataset{Name: strings.TrimSpace(string(d))})
 	}
 	return
