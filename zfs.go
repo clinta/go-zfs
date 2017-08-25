@@ -73,9 +73,21 @@ func (ds *Dataset) GetMountpoint() (string, error) {
 	return ds.GetProperty("mountpoint")
 }
 
+// CreateDatasetRecursive recursively creates a dataset
+func CreateDatasetRecursive(name string, properties map[string]string) (*Dataset, error) {
+	return createDataset(name, true, properties)
+}
+
 // CreateDataset creates a dataset
 func CreateDataset(name string, properties map[string]string) (*Dataset, error) {
+	return createDataset(name, false, properties)
+}
+
+func createDataset(name string, recursive bool, properties map[string]string) (*Dataset, error) {
 	args := []string{"create"}
+	if recursive {
+		args = append(args, "-p")
+	}
 	if properties != nil {
 		for n, v := range properties {
 			args = append(args, "-o", fmt.Sprintf("%v=%v", n, v))
