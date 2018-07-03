@@ -9,11 +9,34 @@ import (
 )
 
 func zExecNoOut(cmd []string) error {
-	return exec.Command("zfs", cmd...).Run()
+	_, err := zExec(cmd)
+	return err
+}
+
+type ZFSError struct {
+	Cmd    string
+	Stderr []byte
+	err    string
+}
+
+func (err *ZFSError) Error() string {
+	return err.Error()
 }
 
 func zExec(cmd []string) ([]byte, error) {
-	return exec.Command("zfs", cmd...).Output()
+	ret, err := exec.Command("zfs", cmd...).Output()
+	if err == nil {
+		return ret, nil
+	}
+	rErr := &ZFSError{
+		Cmd:    fmt.Sprintf("%#v", cmd),
+		Stderr: err.(*exec.ExitError).Stderr,
+		err:    err.Error(),
+	}
+	if eErr, ok := err.(*exec.ExitError); ok {
+		rErr.Stderr = eErr.Stderr
+	}
+	return ret, rErr
 }
 
 func newCmd(args ...string) []string {
@@ -40,7 +63,12 @@ func addSetProperties(cmd []string, properties map[string]string) []string {
 	return cmd
 }
 
-func addCommaSeparated(cmd []string, option string, properties []string) []string {
+func addCommaSeparated(cmd []string, properties []string) []string {
+	cmd = addOpt(cmd, len(properties) > 0, strings.Join(properties, ","))
+	return cmd
+}
+
+func addCommaSeparatedOption(cmd []string, option string, properties []string) []string {
 	cmd = addOpt(cmd, len(properties) > 0, option, strings.Join(properties, ","))
 	return cmd
 }
@@ -217,8 +245,8 @@ func List(name string, opts *ListOpts) ([]string, error) {
 	}
 	cmd = addOpt(cmd, opts.Recurse, "-r")
 	cmd = addOpt(cmd, opts.Depth != -1, "-d", fmt.Sprintf("%d", opts.Depth))
-	cmd = addCommaSeparated(cmd, "-o", []string{"name"})
-	cmd = addCommaSeparated(cmd, "-t", opts.Types)
+	cmd = addCommaSeparatedOption(cmd, "-o", []string{"name"})
+	cmd = addCommaSeparatedOption(cmd, "-t", opts.Types)
 	out, err := zExec(cmd)
 	if err != nil {
 		return nil, err
@@ -262,9 +290,10 @@ func Get(name string, properties []string, opts *GetOpts) (map[string]map[string
 	}
 	cmd = addOpt(cmd, opts.Recurse, "-r")
 	cmd = addOpt(cmd, opts.Depth != -1, "-d", fmt.Sprintf("%d", opts.Depth))
-	cmd = addCommaSeparated(cmd, "-t", opts.Types)
-	cmd = addCommaSeparated(cmd, "-s", opts.Sources)
-	cmd = addCommaSeparated(cmd, "", properties)
+	cmd = addCommaSeparatedOption(cmd, "-t", opts.Types)
+	cmd = addCommaSeparatedOption(cmd, "-s", opts.Sources)
+	cmd = addCommaSeparated(cmd, properties)
+	cmd = addNonEmpty(cmd, name)
 	out, err := zExec(cmd)
 	if err != nil {
 		return nil, err
@@ -272,6 +301,9 @@ func Get(name string, properties []string, opts *GetOpts) (map[string]map[string
 	ret := make(map[string]map[string]*Property)
 	for _, l := range bytes.Split(out, []byte("\n")) {
 		d := strings.Split(string(l), "\t")
+		if len(d) < 4 {
+			continue
+		}
 		if _, ok := ret[d[0]]; !ok {
 			ret[d[0]] = make(map[string]*Property)
 		}
@@ -331,7 +363,7 @@ type MountOpts struct {
 func Mount(name string, opts *MountOpts) error {
 	cmd := newCmd("mount")
 	if opts != nil {
-		cmd = addCommaSeparated(cmd, "-o", opts.Properties)
+		cmd = addCommaSeparatedOption(cmd, "-o", opts.Properties)
 		cmd = addOpt(cmd, opts.MountAll, "-a")
 	}
 	cmd = addNonEmpty(cmd, name)
