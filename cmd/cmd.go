@@ -59,62 +59,110 @@ func addNonEmpty(cmd []string, s ...string) []string {
 	return cmd
 }
 
+type CreateFilesystemOpts struct {
+	SetProperties map[string]string
+	DontMount     bool
+	CreateParents bool
+}
+
 // CreateFilesystem runs zfs create
-func CreateFilesystem(name string, properties map[string]string, noMount, createParents bool) error {
+func CreateFilesystem(name string, opts *CreateFilesystemOpts) error {
 	cmd := newCmd("create")
-	cmd = addOpt(cmd, noMount, "-u")
-	cmd = addOpt(cmd, createParents, "-p")
-	cmd = addProperties(cmd, properties)
+	if opts != nil {
+		cmd = addOpt(cmd, opts.DontMount, "-u")
+		cmd = addOpt(cmd, opts.CreateParents, "-p")
+		cmd = addProperties(cmd, opts.SetProperties)
+	}
 	cmd = addNonEmpty(cmd, name)
 	return zExecNoOut(cmd)
+}
+
+type CreateVolumeOpts struct {
+	SetProperties map[string]string
+	CreateParents bool
+	BlockSize     string
+	Sparse        bool
 }
 
 // CreateVolue runs zfs create -V
-func CreateVolue(name, size string, properties map[string]string, blockSize string, sparse, createParents bool) error {
+func CreateVolue(name, size string, opts *CreateVolumeOpts) error {
 	cmd := newCmd("create")
 	cmd = addOpt(cmd, true, "-V", size)
-	cmd = addProperties(cmd, properties)
-	cmd = addOpt(cmd, blockSize != "", "-b", blockSize)
-	cmd = addOpt(cmd, sparse, "-s")
+	if opts != nil {
+		cmd = addProperties(cmd, opts.SetProperties)
+		cmd = addOpt(cmd, opts.BlockSize != "", "-b", opts.BlockSize)
+		cmd = addOpt(cmd, opts.Sparse, "-s")
+	}
 	cmd = addNonEmpty(cmd, name)
 	return zExecNoOut(cmd)
+}
+
+type DestroyOpts struct {
+	DestroyChildren bool
+	DestroyClones   bool
+	ForceUnmount    bool
+	Defer           bool
 }
 
 // Destroy runs zfs destroy
-func Destroy(name string, destroyChildren, destroyClones, forceUnmount, deferDestroy bool) error {
+func Destroy(name string, opts *DestroyOpts) error {
 	cmd := newCmd("destroy")
-	cmd = addOpt(cmd, destroyChildren, "-r")
-	cmd = addOpt(cmd, destroyClones, "-R")
-	cmd = addOpt(cmd, forceUnmount, "-f")
-	cmd = addOpt(cmd, deferDestroy, "-d")
+	if opts != nil {
+		cmd = addOpt(cmd, opts.DestroyChildren, "-r")
+		cmd = addOpt(cmd, opts.DestroyClones, "-R")
+		cmd = addOpt(cmd, opts.ForceUnmount, "-f")
+		cmd = addOpt(cmd, opts.Defer, "-d")
+	}
 	cmd = addNonEmpty(cmd, name)
 	return zExecNoOut(cmd)
+}
+
+type SnapshotOpts struct {
+	Recurse       bool
+	SetProperties map[string]string
 }
 
 // Snapshot runs zfs snapshot
-func Snapshot(name string, recurse bool, properties map[string]string) error {
+func Snapshot(name string, opts *SnapshotOpts) error {
 	cmd := newCmd("snapshot")
-	cmd = addOpt(cmd, recurse, "-r")
-	cmd = addProperties(cmd, properties)
+	if opts != nil {
+		cmd = addOpt(cmd, opts.Recurse, "-r")
+		cmd = addProperties(cmd, opts.SetProperties)
+	}
 	cmd = addNonEmpty(cmd, name)
 	return zExecNoOut(cmd)
+}
+
+type RollbackOpts struct {
+	DestroyLaterSnapshots bool
+	DestroyClones         bool
+	ForceUnmount          bool
 }
 
 // Rollback runs zfs rollback
-func Rollback(name string, destroyLater, destroyClones, forceUnmount bool) error {
+func Rollback(name string, opts *RollbackOpts) error {
 	cmd := newCmd("rollback")
-	cmd = addOpt(cmd, destroyLater, "-r")
-	cmd = addOpt(cmd, destroyClones, "-R")
-	cmd = addOpt(cmd, forceUnmount, "-f")
+	if opts != nil {
+		cmd = addOpt(cmd, opts.DestroyLaterSnapshots, "-r")
+		cmd = addOpt(cmd, opts.DestroyClones, "-R")
+		cmd = addOpt(cmd, opts.ForceUnmount, "-f")
+	}
 	cmd = addNonEmpty(cmd, name)
 	return zExecNoOut(cmd)
 }
 
+type CloneOpts struct {
+	CreateParents bool
+	SetProperties map[string]string
+}
+
 // Clone runs zfs clone
-func Clone(snapshot, name string, createParents bool, properties map[string]string) error {
+func Clone(snapshot, name string, opts *CloneOpts) error {
 	cmd := newCmd("clone")
-	cmd = addOpt(cmd, createParents, "-p")
-	cmd = addProperties(cmd, properties)
+	if opts != nil {
+		cmd = addOpt(cmd, opts.CreateParents, "-p")
+		cmd = addProperties(cmd, opts.SetProperties)
+	}
 	cmd = addNonEmpty(cmd, snapshot, name)
 	return zExecNoOut(cmd)
 }
@@ -125,40 +173,49 @@ func Promote(name string) error {
 	return zExecNoOut(cmd)
 }
 
+type RenameOpts struct {
+	CreateParents bool
+	DontReMount   bool
+	ForceUnmount  bool
+	Recurse       bool
+}
+
 // Rename runs zfs rename
-func Rename(name, newName string, createParents, noReMount, forceUnmount, recurse bool) error {
+func Rename(name, newName string, opts *RenameOpts) error {
 	cmd := newCmd("rename")
-	cmd = addOpt(cmd, createParents, "-p")
-	cmd = addOpt(cmd, noReMount, "-u")
-	cmd = addOpt(cmd, forceUnmount, "-f")
-	cmd = addOpt(cmd, recurse, "-r")
+	if opts != nil {
+		cmd = addOpt(cmd, opts.CreateParents, "-p")
+		cmd = addOpt(cmd, opts.DontReMount, "-u")
+		cmd = addOpt(cmd, opts.ForceUnmount, "-f")
+		cmd = addOpt(cmd, opts.Recurse, "-r")
+	}
 	cmd = addNonEmpty(cmd, name, newName)
 	return zExecNoOut(cmd)
 }
 
-// List runs zfs list
 // call with depth of -1 to omit the depth argument
-// Returns [][]string, where the first dimension is the row, second is the column
-func List(name string, recurse bool, depth int, properties []string, types []string, sortBy string, sortDescending bool) ([][]string, error) {
+type ListOpts struct {
+	Recurse bool
+	Depth   int
+	Types   []string
+}
+
+// List runs zfs list
+// Returns a map indexed by dataset name, which holds maps of the requested properties
+func List(name string, opts *ListOpts) ([]string, error) {
 	cmd := newCmd("list", "-Hp")
-	if len(properties) == 0 {
-		properties = []string{"name"}
+	if opts == nil {
+		opts = &ListOpts{}
 	}
-	cmd = addOpt(cmd, recurse, "-r")
-	cmd = addOpt(cmd, depth != -1, "-d", fmt.Sprintf("%d", depth))
-	cmd = addCommaSeparated(cmd, "-o", properties)
-	cmd = addOpt(cmd, sortBy != "" && !sortDescending, "-s", sortBy)
-	cmd = addOpt(cmd, sortBy != "" && sortDescending, "-S", sortBy)
-	cmd = addCommaSeparated(cmd, "-t", types)
+	cmd = addOpt(cmd, opts.Recurse, "-r")
+	cmd = addOpt(cmd, opts.Depth != -1, "-d", fmt.Sprintf("%d", opts.Depth))
+	cmd = addCommaSeparated(cmd, "-o", []string{"name"})
+	cmd = addCommaSeparated(cmd, "-t", opts.Types)
 	out, err := zExec(cmd)
 	if err != nil {
 		return nil, err
 	}
-	ret := [][]string{}
-	for _, l := range bytes.Split(out, []byte("\n")) {
-		ret = append(ret, strings.Split(string(l), "\t"))
-	}
-	return ret, nil
+	return strings.Split(string(out), "\n"), nil
 }
 
 // Set runs zfs set
@@ -169,48 +226,63 @@ func Set(name string, properties map[string]string) error {
 	return zExecNoOut(cmd)
 }
 
+// call with depth of -1 to omit the depth argument
+type GetOpts struct {
+	Recurse bool
+	Depth   int
+	Types   []string
+	Sources []string
+}
+
 // Property represents a zfs property
 type Property struct {
-	Name     string
-	Property string
-	Value    string
-	Source   string
+	Value  string
+	Source string
 }
 
 // Get runs zfs get
-// call with depth of -1 to omit the depth argument
-func Get(name string, property []string, recurse bool, depth int, types []string, source []string) ([]*Property, error) {
+// Returns a map indexed by dataset, each of which holds a map indexed by the requested property
+func Get(name string, properties []string, opts *GetOpts) (map[string]map[string]*Property, error) {
 	cmd := newCmd("get", "-Hp")
-	if len(property) == 0 {
-		property = []string{"name"}
+	if opts == nil {
+		opts = &GetOpts{}
 	}
-	cmd = addOpt(cmd, recurse, "-r")
-	cmd = addOpt(cmd, depth != -1, "-d", fmt.Sprintf("%d", depth))
-	cmd = addCommaSeparated(cmd, "-t", types)
-	cmd = addCommaSeparated(cmd, "-s", source)
-	cmd = addCommaSeparated(cmd, "", property)
+
+	if len(properties) == 0 {
+		properties = []string{"name"}
+	}
+	cmd = addOpt(cmd, opts.Recurse, "-r")
+	cmd = addOpt(cmd, opts.Depth != -1, "-d", fmt.Sprintf("%d", opts.Depth))
+	cmd = addCommaSeparated(cmd, "-t", opts.Types)
+	cmd = addCommaSeparated(cmd, "-s", opts.Sources)
+	cmd = addCommaSeparated(cmd, "", properties)
 	out, err := zExec(cmd)
 	if err != nil {
 		return nil, err
 	}
-	ret := []*Property{}
+	ret := make(map[string]map[string]*Property)
 	for _, l := range bytes.Split(out, []byte("\n")) {
 		d := strings.Split(string(l), "\t")
-		ret = append(ret, &Property{
-			Name:     d[0],
-			Property: d[1],
-			Value:    d[2],
-			Source:   d[3],
-		})
+		if _, ok := ret[d[0]]; !ok {
+			ret[d[0]] = make(map[string]*Property)
+		}
+		ret[d[0]][d[1]] = &Property{Value: d[2], Source: d[3]}
 	}
 	return ret, nil
 }
 
+type InheritOpts struct {
+	Recurse  bool
+	Received bool
+}
+
 // Inherit runs zfs inherit
-func Inherit(name string, property string, recurse, received bool) error {
+func Inherit(name string, property string, opts *InheritOpts) error {
 	cmd := newCmd("inherit")
-	cmd = addOpt(cmd, recurse, "-r")
-	cmd = addOpt(cmd, received, "-S")
+	if opts != nil {
+		cmd = addOpt(cmd, opts.Recurse, "-r")
+		cmd = addOpt(cmd, opts.Received, "-S")
+	}
 	cmd = addNonEmpty(cmd, property, name)
 	return zExecNoOut(cmd)
 }
@@ -239,20 +311,34 @@ func GetMounts() ([]*MountEntry, error) {
 	return ret, nil
 }
 
+type MountOpts struct {
+	Properties []string
+	MountAll   bool
+}
+
 // Mount runs zfs mount
-func Mount(name string, properties []string, all bool) error {
+func Mount(name string, opts *MountOpts) error {
 	cmd := newCmd("mount")
-	cmd = addCommaSeparated(cmd, "-o", properties)
-	cmd = addOpt(cmd, all, "-a")
+	if opts != nil {
+		cmd = addCommaSeparated(cmd, "-o", opts.Properties)
+		cmd = addOpt(cmd, opts.MountAll, "-a")
+	}
 	cmd = addNonEmpty(cmd, name)
 	return zExecNoOut(cmd)
 }
 
+type UnMountOpts struct {
+	UnMountAll   bool
+	ForceUnmount bool
+}
+
 // UnMount runs zfs unmount
-func UnMount(name string, all, force bool) error {
+func UnMount(name string, opts *UnMountOpts) error {
 	cmd := newCmd("unmount")
-	cmd = addOpt(cmd, force, "-f")
-	cmd = addOpt(cmd, all, "-a")
+	if opts != nil {
+		cmd = addOpt(cmd, opts.ForceUnmount, "-f")
+		cmd = addOpt(cmd, opts.UnMountAll, "-a")
+	}
 	cmd = addNonEmpty(cmd, name)
 	return zExecNoOut(cmd)
 }
