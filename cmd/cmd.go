@@ -59,6 +59,7 @@ func addNonEmpty(cmd []string, s ...string) []string {
 	return cmd
 }
 
+// CreateFilesystemOpts are options that can be passed to CreateFilesystem
 type CreateFilesystemOpts struct {
 	SetProperties map[string]string
 	DontMount     bool
@@ -77,6 +78,7 @@ func CreateFilesystem(name string, opts *CreateFilesystemOpts) error {
 	return zExecNoOut(cmd)
 }
 
+// CreateVolumeOpts are options that can be passed to CreateVolume
 type CreateVolumeOpts struct {
 	SetProperties map[string]string
 	CreateParents bool
@@ -97,6 +99,7 @@ func CreateVolue(name, size string, opts *CreateVolumeOpts) error {
 	return zExecNoOut(cmd)
 }
 
+// DestroyOpts are options that can be passed to Destroy
 type DestroyOpts struct {
 	DestroyChildren bool
 	DestroyClones   bool
@@ -117,6 +120,7 @@ func Destroy(name string, opts *DestroyOpts) error {
 	return zExecNoOut(cmd)
 }
 
+// SnapshotOpts are options that can be passed to Snapshot
 type SnapshotOpts struct {
 	Recurse       bool
 	SetProperties map[string]string
@@ -133,6 +137,7 @@ func Snapshot(name string, opts *SnapshotOpts) error {
 	return zExecNoOut(cmd)
 }
 
+// RollbackOpts are options that can be passed to Rollback
 type RollbackOpts struct {
 	DestroyLaterSnapshots bool
 	DestroyClones         bool
@@ -151,6 +156,7 @@ func Rollback(name string, opts *RollbackOpts) error {
 	return zExecNoOut(cmd)
 }
 
+// CloneOpts are options that can be passed to Clone
 type CloneOpts struct {
 	CreateParents bool
 	SetProperties map[string]string
@@ -173,6 +179,7 @@ func Promote(name string) error {
 	return zExecNoOut(cmd)
 }
 
+// RenameOpts are options that can be passed to Rename
 type RenameOpts struct {
 	CreateParents bool
 	DontReMount   bool
@@ -193,7 +200,8 @@ func Rename(name, newName string, opts *RenameOpts) error {
 	return zExecNoOut(cmd)
 }
 
-// call with depth of -1 to omit the depth argument
+// ListOpts are options that can be passed to List
+// Depth defaults to zero, set to -1 to omit the depth argument
 type ListOpts struct {
 	Recurse bool
 	Depth   int
@@ -226,7 +234,8 @@ func Set(name string, properties map[string]string) error {
 	return zExecNoOut(cmd)
 }
 
-// call with depth of -1 to omit the depth argument
+// GetOpts are options that can be passed to Get
+// Depth defaults to 0, set to -1 to omit the depth argument
 type GetOpts struct {
 	Recurse bool
 	Depth   int
@@ -234,7 +243,7 @@ type GetOpts struct {
 	Sources []string
 }
 
-// Property represents a zfs property
+// Property is a zfs property recieved from Get
 type Property struct {
 	Value  string
 	Source string
@@ -271,6 +280,7 @@ func Get(name string, properties []string, opts *GetOpts) (map[string]map[string
 	return ret, nil
 }
 
+// InheritOpts are options that can be passed to Inherit
 type InheritOpts struct {
 	Recurse  bool
 	Received bool
@@ -287,7 +297,7 @@ func Inherit(name string, property string, opts *InheritOpts) error {
 	return zExecNoOut(cmd)
 }
 
-// MountEntry represents a mounted zfs filesystem
+// MountEntry is a mounted zfs filesystem
 type MountEntry struct {
 	Name       string
 	Mountpoint string
@@ -311,6 +321,7 @@ func GetMounts() ([]*MountEntry, error) {
 	return ret, nil
 }
 
+// MountOpts are options that can be passed to Mount
 type MountOpts struct {
 	Properties []string
 	MountAll   bool
@@ -327,6 +338,7 @@ func Mount(name string, opts *MountOpts) error {
 	return zExecNoOut(cmd)
 }
 
+// UnMountOpts are options that can be passed to UnMount
 type UnMountOpts struct {
 	UnMountAll   bool
 	ForceUnmount bool
