@@ -2,14 +2,14 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"os/exec"
 	"strings"
 )
 
 func zExecNoOut(cmd []string) error {
-	_, err := zExec(cmd)
-	return err
+	return exec.Command("zfs", cmd...).Run()
 }
 
 func zExec(cmd []string) ([]byte, error) {
@@ -155,8 +155,8 @@ func List(name string, recurse bool, depth int, properties []string, types []str
 		return nil, err
 	}
 	ret := [][]string{}
-	for _, l := range strings.Split(string(out), "\n") {
-		ret = append(ret, strings.Split(l, "\t"))
+	for _, l := range bytes.Split(out, []byte("\n")) {
+		ret = append(ret, strings.Split(string(l), "\t"))
 	}
 	return ret, nil
 }
@@ -171,10 +171,10 @@ func Set(name string, properties map[string]string) error {
 
 // Property represents a zfs property
 type Property struct {
-	name     string
-	property string
-	value    string
-	source   string
+	Name     string
+	Property string
+	Value    string
+	Source   string
 }
 
 // Get runs zfs get
@@ -194,13 +194,13 @@ func Get(name string, property []string, recurse bool, depth int, types []string
 		return nil, err
 	}
 	ret := []*Property{}
-	for _, l := range strings.Split(string(out), "\n") {
-		d := strings.Split(l, "\t")
+	for _, l := range bytes.Split(out, []byte("\n")) {
+		d := strings.Split(string(l), "\t")
 		ret = append(ret, &Property{
-			name:     d[0],
-			property: d[1],
-			value:    d[2],
-			source:   d[3],
+			Name:     d[0],
+			Property: d[1],
+			Value:    d[2],
+			Source:   d[3],
 		})
 	}
 	return ret, nil
@@ -217,8 +217,8 @@ func Inherit(name string, property string, recurse, received bool) error {
 
 // MountEntry represents a mounted zfs filesystem
 type MountEntry struct {
-	name       string
-	mountpoint string
+	Name       string
+	Mountpoint string
 }
 
 // GetMounts runs zfs mount with no arguments
@@ -232,8 +232,8 @@ func GetMounts() ([]*MountEntry, error) {
 	for _, l := range strings.Split(string(out), "\n") {
 		d := strings.SplitN(l, "  ", 2)
 		ret = append(ret, &MountEntry{
-			name:       strings.Trim(d[0], " "),
-			mountpoint: strings.Trim(d[1], " "),
+			Name:       strings.Trim(d[0], " "),
+			Mountpoint: strings.Trim(d[1], " "),
 		})
 	}
 	return ret, nil
