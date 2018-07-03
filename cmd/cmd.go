@@ -145,7 +145,7 @@ func List(name string, recurse bool, depth int, properties []string, types []str
 		properties = []string{"name"}
 	}
 	cmd = addOpt(cmd, recurse, "-r")
-	cmd = addOpt(cmd, depth != -1, "-d", fmt.Sprintf("%s", depth))
+	cmd = addOpt(cmd, depth != -1, "-d", fmt.Sprintf("%d", depth))
 	cmd = addCommaSeparated(cmd, "-o", properties)
 	cmd = addOpt(cmd, sortBy != "" && !sortDescending, "-s", sortBy)
 	cmd = addOpt(cmd, sortBy != "" && sortDescending, "-S", sortBy)
@@ -169,6 +169,7 @@ func Set(name string, properties map[string]string) error {
 	return zExecNoOut(cmd)
 }
 
+// Property represents a zfs property
 type Property struct {
 	name     string
 	property string
@@ -184,7 +185,7 @@ func Get(name string, property []string, recurse bool, depth int, types []string
 		property = []string{"name"}
 	}
 	cmd = addOpt(cmd, recurse, "-r")
-	cmd = addOpt(cmd, depth != -1, "-d", fmt.Sprintf("%s", depth))
+	cmd = addOpt(cmd, depth != -1, "-d", fmt.Sprintf("%d", depth))
 	cmd = addCommaSeparated(cmd, "-t", types)
 	cmd = addCommaSeparated(cmd, "-s", source)
 	cmd = addCommaSeparated(cmd, "", property)
@@ -214,7 +215,7 @@ func Inherit(name string, property string, recurse, received bool) error {
 	return zExecNoOut(cmd)
 }
 
-// Mount represents a mounted zfs filesystem
+// MountEntry represents a mounted zfs filesystem
 type MountEntry struct {
 	name       string
 	mountpoint string
