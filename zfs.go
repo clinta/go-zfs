@@ -6,7 +6,9 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // Dataset is a zfs dataset
@@ -82,6 +84,20 @@ func (ds *Dataset) GetExactProperty(property string) (string, error) {
 // GetMountpoint returns the mountpoint for a dataset
 func (ds *Dataset) GetMountpoint() (string, error) {
 	return ds.GetProperty("mountpoint")
+}
+
+func (ds *Dataset) GetCreation() (time.Time, error) {
+	uts, err := ds.GetExactProperty("creation")
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	ut, err := strconv.ParseInt(uts, 10, 64)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return time.Unix(ut, 0), nil
 }
 
 // CreateDatasetRecursive recursively creates a dataset
