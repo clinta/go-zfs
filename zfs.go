@@ -117,7 +117,6 @@ func (ds *Dataset) Destroy() error {
 	if err := exec.Command("zfs", "destroy", "-R", ds.Name).Run(); err != nil {
 		return err
 	}
-	ds = nil
 	return nil
 }
 
