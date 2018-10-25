@@ -68,6 +68,17 @@ func (ds *Dataset) GetProperty(property string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
+// GetExactProperty returns a property for a dataset using exact values
+func (ds *Dataset) GetExactProperty(property string) (string, error) {
+	out, err := exec.Command("zfs", "get", "-H", "-p",
+		"-o", "value",
+		property, ds.Name).Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
 // GetMountpoint returns the mountpoint for a dataset
 func (ds *Dataset) GetMountpoint() (string, error) {
 	return ds.GetProperty("mountpoint")
