@@ -114,8 +114,13 @@ type CreateVolumeOpts struct {
 	Sparse        bool
 }
 
-// CreateVolue runs zfs create -V
+// CreateVolue is a deprecated ill-named alias to CreateVolume
 func CreateVolue(name, size string, opts *CreateVolumeOpts) error {
+	return CreateVolume(name, size, opts)
+}
+
+// CreateVolume runs zfs create -V
+func CreateVolume(name, size string, opts *CreateVolumeOpts) error {
 	cmd := newCmd("create")
 	cmd = addOpt(cmd, true, "-V", size)
 	if opts != nil {
